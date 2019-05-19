@@ -1,16 +1,18 @@
 %option noyywrap nounput batch noinput
 %{
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	#define DEBUGPRINT(fmt, ...) printf(fmt, __VA_ARGS__)
-#else
-	#define DEBUGPRINT(fmt, ...)
-#endif
+//#else
+	//#define DEBUGPRINT(fmt, ...)
+//#endif
 #define fileno _fileno
 #include "y_tab.h"
 extern int yylex(void);
+extern void yyerror(const char *s);
 int SetYYIN();
 void CloseYYIN();
-static void parse_comment();
+static void parseBlockComment();
+static void parseBlockString();
 #include <stdio.h>
 #include <stdlib.h>
 int lines = 1;
@@ -70,14 +72,13 @@ true																												{ DEBUGPRINT("true: %s\n",yytext); return TRUE;}
 \"([^\\\"]|\\\n|\\.)*\"																								{ DEBUGPRINT("string: %s\n",yytext); return STRING;}
 \'([^\\\']|\\\n|\\.)*\'																								{ DEBUGPRINT("string: %s\n",yytext); return STRING;}
 \[{2}([^\]]*[\]]?[^\]]+)*\]{2}																						{ DEBUGPRINT("string: %s\n",yytext); return STRING;}
-\[=\[(([^\]]*[\]]?[^=]+)|([^\]]*[\]]?[=]?[^\]]+))*\]=\]																{ DEBUGPRINT("string: %s\n",yytext); return STRING;}
+\[=																													{ parseBlockString(); DEBUGPRINT("string: %s\n",yytext); return STRING;}
 \.\.\.																												{ DEBUGPRINT("tdot: %s\n",yytext); return TDOT;}
 [A-Za-z_][A-Za-z0-9_]*																								{ DEBUGPRINT("name: %s\n",yytext); return NAME; }
 ::[A-Za-z_][A-Za-z0-9_]*::																							{ DEBUGPRINT("label: %s\n",yytext); return LABEL; }
 <<EOF>>																												{return MYEOF;}
 --\[\[([^\]]*[\]]?[^\]]+)*\]\]																						{ DEBUGPRINT("comment: %s\n",yytext); comments++;}
---\[=\[(([^\]]*[\]]?[^=]+)|([^\]]*[\]]?[=]?[^\]]+))*\]=\]															{ DEBUGPRINT("comment: %s\n",yytext); comments++;}
---[^\n]*																											{ DEBUGPRINT("comment: %s\n",yytext); comments++;}
+--																												    { parseBlockComment(); DEBUGPRINT("comment: %s\n",yytext); comments++;}
 																			
 =																													{ DEBUGPRINT("assign: %s\n",yytext); return ASSIGN; }
 \.																													{ DEBUGPRINT("dot: %s\n",yytext); return DOT; }
@@ -95,18 +96,111 @@ true																												{ DEBUGPRINT("true: %s\n",yytext); return TRUE;}
 
 %%
 
-static void parse_comment()
+static void parseBlockComment()
 {
 	int c;
+	int count=0;
+	if ((c=input())!='[')
+	{
+		while((c=input())!=-1)
+		{
+			if (c=='\n')
+			{
+				return;
+			}
+			//count++;
+		}
+		return;
+	}
+	else
+	{
+		//scount++;
+		while((c=input())!='[')
+		{
+			if (c==-1)
+			{
+				yyerror("unterminated comment");
+			}
+			count++;
 
-    while ((c = input()) != -1)
-    {
-        if (c == '\n')
-        {
-            break;
-        }
-    }
-   // yyerror("unterminated comment");
+		}
+		//printf("count:%d\n",count);
+		c = input();
+		while (c !=  -1)
+		{
+			//printf("%c",c);
+			if (c==']')
+			{
+				int temp=count;
+				while((c = input()) == '=')
+				{
+					temp--;
+				}
+				if (c==']')
+				{
+					if (temp==0)
+						return;
+					continue;
+				}
+				//printf("%d\n",temp);
+				c = input();
+				
+			}
+			else
+			{
+				c = input();
+			}
+		}
+		
+		if (c==-1)
+		{
+			yyerror("unterminated comment");
+		}
+	}
+
+}
+
+static void parseBlockString()
+{
+	int c;
+	int count=1;
+	while((c=input())!='[')
+	{
+		if (c==-1)
+		{
+			yyerror("unterminated string");
+		}
+		count++;
+	}
+	c=input();
+	while (c != -1)
+	{
+		if (c==']')
+		{
+			int temp=count;
+			while((c = input()) == '=')
+			{
+				temp--;
+			}
+			if (c==']')
+			{
+				if (temp==0)
+					return;
+				continue;
+			}
+			c=input();
+			
+		}
+		else
+		{
+			c=input();
+		}
+	}
+	
+	if (c==-1)
+	{
+		yyerror("unterminated string");
+	}
 }
 
 int SetYYIN(char *in)

@@ -24,8 +24,8 @@ extern int lines;
 
 void yyerror(const char *s)
 {
-	printf("error\n");
-	//exit(lines);
+	printf("%s",s);
+	exit(1);
 }
 
 extern int yylex(void);
