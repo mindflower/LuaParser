@@ -100,63 +100,74 @@ static void parseBlockComment()
 {
 	int c;
 	int count=0;
-	if ((c=input())!='[')
+	if ((c=input())=='\n'||c==-1)
 	{
-		while((c=input())!=-1)
+		return;
+	}
+	
+	if (c!='['&&(c=input())!='=')
+	{
+		while(c!=-1)
 		{
 			if (c=='\n')
 			{
 				return;
 			}
 			//count++;
+			c=input();
 		}
 		return;
 	}
-	else
-	{
-		//scount++;
-		while((c=input())!='[')
-		{
-			if (c==-1)
-			{
-				yyerror("unterminated comment");
-			}
-			count++;
 
-		}
-		//printf("count:%d\n",count);
-		c = input();
-		while (c !=  -1)
-		{
-			//printf("%c",c);
-			if (c==']')
-			{
-				int temp=count;
-				while((c = input()) == '=')
-				{
-					temp--;
-				}
-				if (c==']')
-				{
-					if (temp==0)
-						return;
-					continue;
-				}
-				//printf("%d\n",temp);
-				c = input();
-				
-			}
-			else
-			{
-				c = input();
-			}
-		}
-		
-		if (c==-1)
+	
+	
+	
+	//count++;
+	while((c=input())!='[')
+	{
+		//printf("%c",c);
+		if (c=='\n')
+			return;
+		if (c==-1||c!='=')
 		{
 			yyerror("unterminated comment");
 		}
+		count++;
+
 	}
+	//printf("count:%d\n",count);
+	c = input();
+	while (c !=  -1)
+	{
+		//printf("%c",c);
+		if (c==']')
+		{
+			int temp=count;
+			while((c = input()) == '=')
+			{
+				temp--;
+			}
+			if (c==']')
+			{
+				if (temp==0)
+					return;
+				continue;
+			}
+			//printf("%d\n",temp);
+			c = input();
+			
+		}
+		else
+		{
+			c = input();
+		}
+	}
+	
+	if (c==-1)
+	{
+		yyerror("unterminated comment");
+	}
+	
 
 }
 
@@ -166,7 +177,7 @@ static void parseBlockString()
 	int count=1;
 	while((c=input())!='[')
 	{
-		if (c==-1)
+		if (c==-1||c!='=')
 		{
 			yyerror("unterminated string");
 		}
