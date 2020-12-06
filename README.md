@@ -1,2 +1,2 @@
 # LuaParser
-Lua parser implemented by flex/bison
+Lua parser implemented with flex/bison
